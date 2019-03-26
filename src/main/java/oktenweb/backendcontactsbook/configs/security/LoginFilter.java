@@ -4,64 +4,46 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import oktenweb.backendcontactsbook.models.AccountCredentials;
+import oktenweb.backendcontactsbook.services.UserService;
+import oktenweb.backendcontactsbook.utils.CheckService;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.authentication.AbstractAuthenticationProcessingFilter;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
-import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
 
 
 public class LoginFilter extends AbstractAuthenticationProcessingFilter {
+    private AccountCredentials creds;
+    private UserService userService;
+    private PasswordEncoder passwordEncoder;
+    private CheckService checkService;
 
-    public LoginFilter(String url, AuthenticationManager authManager) {
+    public LoginFilter(String url, AuthenticationManager authManager, UserService userService, PasswordEncoder passwordEncoder) {
         super(new AntPathRequestMatcher(url));
         setAuthenticationManager(authManager);
+        this.userService = userService;
+        this.passwordEncoder = passwordEncoder;
+        this.checkService = new CheckService(userService, passwordEncoder);
     }
 
 
-//    During the authentication attempt,
-// which is dealt by the attemptAuthentication method,
-// we retrieve the username and password from the request.
-// After they are retrieved, we use the AuthenticationManager to verify that these details match with an existing user.
-// If it does, we enter the successfulAuthentication method.
-// In this method we fetch the name from the authenticated user,
-// and pass it on to TokenAuthenticationService, which will then add a JWT to the response.
-
-    private AccountCredentials creds;
-
     @Override
     public Authentication attemptAuthentication(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse) throws AuthenticationException, IOException, ServletException {
-        //this method react  on /login url  and retrive body from request
-        //then map it to model AccountCredential
         creds = new ObjectMapper()
                 .readValue(httpServletRequest.getInputStream(), AccountCredentials.class);
 
         System.out.println(creds);
-        // then  get default method getAuthenticationManager()
-        // and set Authentication object based on data from creds object
 
-        // if auth process if success we jump to line 65 successfulAuthentication()
-        List<SimpleGrantedAuthority> role_admin = Arrays.asList(new SimpleGrantedAuthority("ROLE_ADMIN"));
-        return getAuthenticationManager().authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        creds.getUsername(),
-                        creds.getPassword(),
-                        role_admin
-                )
-        );
+
+        return checkService.retriveAuthentication(creds.getUsername(), creds.getPassword());
 
 
     }
@@ -83,6 +65,7 @@ public class LoginFilter extends AbstractAuthenticationProcessingFilter {
         //and add it to header
         res.addHeader("Authorization", "Bearer " + jwtoken);
         res.setHeader("Access-Control-Expose-Headers", "Authorization");
+        System.out.println("token was setted to headers");
 
     }
 }

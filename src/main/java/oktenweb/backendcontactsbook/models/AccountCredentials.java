@@ -1,7 +1,8 @@
 package oktenweb.backendcontactsbook.models;
 
 
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.Data;
 import lombok.experimental.FieldDefaults;
 
 @Data
@@ -9,4 +10,5 @@ import lombok.experimental.FieldDefaults;
 public class AccountCredentials {
     String username;
     String password;
+
 }
